@@ -1,0 +1,7 @@
+Results bottlebecks:
+
+VGG:
+
+Epoch 50/50
+
+1000/1000 [==============================] - 407s - loss: 0.2622 - acc: 0.9780 - val_loss: 0.7055 - val_acc: 0.7816
