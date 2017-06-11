@@ -1,0 +1,37 @@
+A/ Setup environment
+
+1. Install Brew, needed in install-mac.sh to install pacakges for
+
+https://en.wikipedia.org/wiki/Homebrew_(package_management_software)
+https://brew.sh/
+
+2. Install xcode cli tools to get make and gcc
+
+https://itunes.apple.com/us/app/xcode/id497799835?ls=1&mt=12
+
+http://osxdaily.com/2014/02/12/install-command-line-tools-mac-os-x/
+
+3. Run install-mac.sh
+
+I have changed this line:
+
+cmake ..       
+
+with: 
+
+cmake -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl ..
+
+
+B/ Code structure
+
+- FusionEKP: 
+* code to implement entire flow from Lessons 12 & 13 (tracking class) 
+* code to initialize measurement covariance matrices in the constructor from lessons ??
+- Tools:
+* code to implement RMSE calculation from lessons 22 & 23
+* code to implement Jacobian to approximate to lineal, from Lessons 18 & 19
+- Kalman Filter:
+* code to implement update and predict methods from lessons 12 y 13 (kalman filter class)
+* code to extended update method from lesson 
+* difference between kalman filter for (linear) laser measurements and extended kalman filter to also support (polar) 
+radar measurements, in lesson 20
