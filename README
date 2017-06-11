@@ -1,0 +1,48 @@
+
+
+1/ Conda Environments for different CarND projects
+
+source activate carnd-term1
+
+Intro to Tensorflow
+conda create --name=IntroToTensorFlow python=3 anaconda
+source activate IntroToTensorFlow
+conda install -c conda-forge tensorflow
+
+
+TensorFlowLab
+git clone https://github.com/udacity/CarND-TensorFlow-Lab.git
+conda env create -f CarND-TensorFlow-Lab/environment.yml
+conda install --name CarND-TensorFlow-Lab -c conda-forge tensorflow
+source activate CarND-TensorFlow-Lab
+
+
+2/ Configuring and accessing GPU-enabled AWS EC2 instance
+
+- create ec2 instance
+community ami: carnd
+g2.2xlarge
+no IAM role
+security group: ssh and custom tcp rule to port 8888
+no key pair
+
+Instance can be started / stopped. After re-start, IP address may change (to take into account when ssh'ing
+and connecting to notebook below)
+
+- connect to instance
+ssh carnd@ec2-54-155-73-27.eu-west-1.compute.amazonaws.com
+pass: carnd
+
+source activate carnd-term1
+
+download project and run notebook, e.g.:	
+git clone https://github.com/udacity/CarND-Traffic-Sign-Classifier-Project
+cd CarND-Traffic-Sign-Classifier-Project
+jupyter nootebook Traffic_Sign_Classifier.ipynb
+
+then, from a local browser, connect to:
+http://54.155.73.27:8888/notebooks/Traffic_Sign_Classifier.ipynb
+
+where the IP address is the IP address of the instance
+
+
