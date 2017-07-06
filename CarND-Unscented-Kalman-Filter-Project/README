@@ -1,0 +1,26 @@
+A/ Setup environment
+
+1. Install Brew, needed in install-mac.sh to install pacakges for
+
+https://en.wikipedia.org/wiki/Homebrew_(package_management_software)
+https://brew.sh/
+
+2. Install xcode cli tools to get make and gcc
+
+https://itunes.apple.com/us/app/xcode/id497799835?ls=1&mt=12
+
+http://osxdaily.com/2014/02/12/install-command-line-tools-mac-os-x/
+
+3. Run install-mac.sh
+
+I have changed this line:
+
+cmake ..       
+
+with: 
+
+cmake -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl ..
+
+
+B/ Code structure
+
