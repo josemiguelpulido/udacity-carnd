@@ -117,13 +117,26 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
       x_ << meas_package.raw_measurements_[0], meas_package.raw_measurements_[1], 0, 0, 0, 0;
     }
 
+    previous_timestamp_ = meas_package.timestamp_;
+
     // done initializing, no need to predict or update
     is_initialized_ = true;
     return;
 
   }
 
+  // Prediction
+  double delta_t = meas_package.timestamp_ - previous_timestamp_;
+  previous_timestamp_ = meas_package.timestamp_;
+  Prediction(delta_t);
 
+  // Update
+  if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
+    UpdateRadar(meas_package);
+  }
+  else if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
+    UpdateLidar(meas_package);
+  }
 
 }
 
