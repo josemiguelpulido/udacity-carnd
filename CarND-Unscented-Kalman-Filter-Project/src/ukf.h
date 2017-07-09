@@ -67,6 +67,10 @@ public:
   ///* Sigma point spreading parameter
   double lambda_;
 
+  ///* number of sigma points for ease of computation and performance
+  int n_aug_sigma_p_;
+
+  ///* previous timestamp to compute delta_t
   long long previous_timestamp_;
 
 
