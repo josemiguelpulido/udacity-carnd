@@ -24,3 +24,13 @@ cmake -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl ..
 
 B/ Code structure
 
+- NIS computation and how to set std deviation for longitudinal and yaw acceleration, in lesson 32
+
+- Various trials for std deviation values:
+https://docs.google.com/spreadsheets/d/1SS61FFP6XPh06V2rkFzSGsLnvWRSAEMKFIY-EuzBZ4w/edit#gid=0
+
+- How to clone a (udacity) repo and then change remote origin to a new repo (mine):
+https://stackoverflow.com/questions/18200248/cloning-a-repo-from-someone-elses-github-and-pushing-it-to-a-repo-on-my-github
+
+- Paper on Extended Kalman Filter
+https://www.seas.harvard.edu/courses/cs281/papers/unscented.pdf
