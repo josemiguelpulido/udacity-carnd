@@ -74,6 +74,28 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 	//  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
 	//  http://www.cplusplus.com/reference/random/default_random_engine/
 
+  // distributions for radom noise
+  // add random noise
+  default_random_engine gen;
+  normal_distribution<double> dist_x(0, std_pos[0]);
+  normal_distribution<double> dist_y(0, std_pos[1]);
+  normal_distribution<double> dist_theta(0, std_pos[2]);
+
+
+  for (int i = 0; i < num_particles; ++i) {
+
+    // add measurements
+    particles[i].x = particles[i].x + (velocity / yaw_rate) * (sin(particles[i].theta + yaw_rate * delta_t) - sin(particles[i].theta));
+    particles[i].y = particles[i].y + (velocity / yaw_rate) * (cos(particles[i].theta) - sin(particles[i].theta + yaw_rate * delta_t));
+    particles[i].theta = particles[i].theta + yaw_rate * delta_t;
+
+    // add random noise
+    particles[i].x += dist_x(gen);
+    particles[i].y += dist_y(gen);
+    particles[i].theta += dist_theta(gen);
+
+  }
+
 }
 
 void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations) {
@@ -81,6 +103,26 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
 	//   observed measurement to this particular landmark.
 	// NOTE: this method will NOT be called by the grading code. But you will probably find it useful to 
 	//   implement this method and use it as a helper during the updateWeights phase.
+
+  for (int i = 0; i < observations.size(); ++i) {
+
+    double min_distance = 100.0; // MAX_DISTANCE
+    int closest_landmark = -1;
+
+    for (int j = 0; j < predicted.size(); ++j) {
+      
+      double dist_x = predicted[j].x - observations[i].x;
+      double dist_y = predicted[j].y - observations[i].y;
+
+      double distance = sqrt(pow(dist_x,2) + pow(dist_y,2));
+
+      if (distance < min_distance) { closest_landmark = predicted[j].id; }
+
+    } // end for (observations)
+
+  } // end for (predicted)
+
+  
 
 }
 
@@ -96,12 +138,22 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//   and the following is a good resource for the actual equation to implement (look at equation 
 	//   3.33
 	//   http://planning.cs.uiuc.edu/node99.html
+
+  // transform observations in vehicle coordinates into world coordinates
+
+
+  // associate measurements to landmarks
+
+
+  // multiply probabilities per landmark to determine weight
 }
 
 void ParticleFilter::resample() {
 	// TODO: Resample particles with replacement with probability proportional to their weight. 
 	// NOTE: You may find std::discrete_distribution helpful here.
 	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
+
+  // implement wheel-based resampling algorithm
 
 }
 
