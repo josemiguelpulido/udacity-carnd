@@ -85,8 +85,12 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
   for (int i = 0; i < num_particles; ++i) {
 
     // add measurements
-    particles[i].x = particles[i].x + (velocity / yaw_rate) * (sin(particles[i].theta + yaw_rate * delta_t) - sin(particles[i].theta));
-    particles[i].y = particles[i].y + (velocity / yaw_rate) * (cos(particles[i].theta) - sin(particles[i].theta + yaw_rate * delta_t));
+    particles[i].x = 
+      particles[i].x + (velocity / yaw_rate) * (sin(particles[i].theta + yaw_rate * delta_t) - sin(particles[i].theta));
+
+    particles[i].y = 
+      particles[i].y + (velocity / yaw_rate) * (cos(particles[i].theta) - sin(particles[i].theta + yaw_rate * delta_t));
+
     particles[i].theta = particles[i].theta + yaw_rate * delta_t;
 
     // add random noise
@@ -139,13 +143,81 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//   3.33
 	//   http://planning.cs.uiuc.edu/node99.html
 
-  // transform observations in vehicle coordinates into world coordinates
+  std::vector<LandmarkObs> world_observations;
+
+  for (int i = 0; i < particles.size(); ++i) {
 
 
-  // associate measurements to landmarks
+    std::vector<int> associations;
+    std::vector<double> sense_x;
+    std::vector<double> sense_y;
 
+    for (int j = 0; j < observations.size(); ++j) {
 
-  // multiply probabilities per landmark to determine weight
+      // transform observations in vehicle coordinates into world coordinates    
+
+      // decompose vehicle coordinates
+      double x_x = observations[j].x * cos(particles[i].theta);
+      double x_y = observations[j].x * sin(particles[i].theta);
+
+      double y_x = observations[j].y * cos(M_PI/2 - particles[i].theta);
+      double y_y = observations[j].y * sin(M_PI/2 - particles[i].theta);
+
+      // add components to particle coordinates to get world coordinates
+      double w_x = particles[i].x + x_x + y_x;
+      double w_y = particles[i].y + x_y + y_y;
+
+      // find the closest landmark to the observation
+      double min_distance = 100.0; // MAX_DISTANCE
+      int closest_landmark_id = -1;
+      std::vector<Map::single_landmark_s> landmarks = map_landmarks.landmark_list;
+
+      for (int z = 0; z < landmarks.size(); ++z) {
+	double distance = dist(landmarks[z].x_f,landmarks[z].y_f,w_x, w_y); 
+
+	if (distance < min_distance && distance <= sensor_range) { 
+	  closest_landmark_id = landmarks[z].id_i; 
+	}
+      }
+
+      // associate measurement to closest landmark
+      associations.push_back(closest_landmark_id);
+      sense_x.push_back(w_x);
+      sense_y.push_back(w_y);
+
+    } // end observations
+    
+    // store associations for all measurements
+    particles[i] = this->SetAssociations(particles[i],associations, sense_x, sense_y);
+
+    // compute multivariate probability per measurement and multiply all probabilities 
+    // together to determine weight
+
+    std::vector<Map::single_landmark_s> landmarks = map_landmarks.landmark_list;
+    double ONE_OVER_2PI_STD = 1/(2*M_PI * std_landmark[0] * std_landmark[1]);
+
+    for (int j = 0; j < particles[i].associations.size(); ++j) {
+      
+      // compute multivariate normal distribution
+      double mu_x = landmarks[particles[i].associations[j]].x_f;
+      double mu_y = landmarks[particles[i].associations[j]].y_f;
+      double x = particles[i].sense_x[j];
+      double y = particles[i].sense_y[j];
+      double std_x = std_landmark[0];
+      double std_y = std_landmark[1];
+
+      double exp_x = (x-mu_x)/std_x;
+      double exp_y = (y-mu_y)/std_y;
+
+      double prob = ONE_OVER_2PI_STD*exp(-0.5*(exp_x*exp_x + exp_y*exp_y));
+
+      // multiply probabilities together to generate weight
+      particles[i].weight *= prob;
+      
+    }
+    
+  } // end particles
+
 }
 
 void ParticleFilter::resample() {
@@ -154,6 +226,7 @@ void ParticleFilter::resample() {
 	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
 
   // implement wheel-based resampling algorithm
+
 
 }
 
