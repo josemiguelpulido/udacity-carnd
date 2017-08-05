@@ -25,10 +25,14 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	// Add random Gaussian noise to each particle.
 	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
 
+  cout << "initializing particles filter" << endl;
+
   if (!is_initialized) {
 
     // initialize number of particles
     num_particles = 10;
+
+    cout << "number of particles set" << endl;
 
     // create normal distributions with means based on GPS coordinates
     default_random_engine gen;
@@ -61,11 +65,14 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
       };
 
       particles.push_back(p);
+      weights.push_back(1);
     }
 
     is_initialized = true;
 
   }
+
+  cout << "particle filter initalized" << endl;
 }
 
 void ParticleFilter::prediction(double delta_t, double std_pos[], double velocity, double yaw_rate) {
@@ -74,7 +81,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 	//  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
 	//  http://www.cplusplus.com/reference/random/default_random_engine/
 
-  // distributions for radom noise
+  // distributions for random noise
   // add random noise
   default_random_engine gen;
   normal_distribution<double> dist_x(0, std_pos[0]);
@@ -85,18 +92,27 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
   for (int i = 0; i < num_particles; ++i) {
 
     // add measurements
-    particles[i].x = 
-      particles[i].x + (velocity / yaw_rate) * (sin(particles[i].theta + yaw_rate * delta_t) - sin(particles[i].theta));
+    if (fabs(yaw_rate) > 0.001) {
 
-    particles[i].y = 
-      particles[i].y + (velocity / yaw_rate) * (cos(particles[i].theta) - sin(particles[i].theta + yaw_rate * delta_t));
+      particles[i].x = 
+	particles[i].x + (velocity / yaw_rate) * (sin(particles[i].theta + yaw_rate * delta_t) - sin(particles[i].theta));
 
-    particles[i].theta = particles[i].theta + yaw_rate * delta_t;
+      particles[i].y = 
+	particles[i].y + (velocity / yaw_rate) * (cos(particles[i].theta) - sin(particles[i].theta + yaw_rate * delta_t));
+
+      particles[i].theta = particles[i].theta + yaw_rate * delta_t;
+    } else {
+      particles[i].x = particles[i].x + velocity * delta_t * cos(particles[i].theta);
+      particles[i].y = particles[i].y + velocity * delta_t * sin(particles[i].theta);
+      // theta does not change
+    }
 
     // add random noise
     particles[i].x += dist_x(gen);
     particles[i].y += dist_y(gen);
     particles[i].theta += dist_theta(gen);
+
+    cout << particles[i].x << endl;
 
   }
 
@@ -177,6 +193,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 
 	if (distance < min_distance && distance <= sensor_range) { 
 	  closest_landmark_id = landmarks[z].id_i; 
+	  min_distance = distance;
 	}
       }
 
@@ -194,7 +211,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
     // together to determine weight
 
     std::vector<Map::single_landmark_s> landmarks = map_landmarks.landmark_list;
-    double ONE_OVER_2PI_STD = 1/(2*M_PI * std_landmark[0] * std_landmark[1]);
+    double ONE_OVER_2PI_STD = 1.0 / (2*M_PI * std_landmark[0] * std_landmark[1]);
 
     for (int j = 0; j < particles[i].associations.size(); ++j) {
       
@@ -215,6 +232,9 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
       particles[i].weight *= prob;
       
     }
+
+    // store weight in weights array (to be used in resample computation)
+    weights[i] = particles[i].weight;
     
   } // end particles
 
@@ -226,6 +246,27 @@ void ParticleFilter::resample() {
 	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
 
   // implement wheel-based resampling algorithm
+
+  default_random_engine gen;
+  discrete_distribution<int> dist(0,num_particles);
+  int index = dist(gen);
+
+  double wmax = *max_element(weights.begin(), weights.end());
+  double beta = 0;
+
+  for (int i = 0; i < weights.size(); ++i) {
+    uniform_real_distribution<double> beta_dist(0,2*wmax);
+    beta += beta_dist(gen);
+
+    while (weights[index] < beta) {
+      beta -= weights[index];
+      index = (index + 1) % weights.size();
+    }
+
+    // replace current particle with sampled particle
+    particles[i] = particles[index];
+  }
+  
 
 
 }
