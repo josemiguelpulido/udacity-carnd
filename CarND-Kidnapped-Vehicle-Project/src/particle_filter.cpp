@@ -66,7 +66,13 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 
       particles.push_back(p);
       weights.push_back(1);
-    }
+
+      //cout << i << " x: " << particles[i].x << endl;
+      //cout << i << " y: "<< particles[i].y << endl;
+      //cout << i << " theta: "<< particles[i].theta << endl;
+      //cout << i << " weight: "<< particles[i].weight << ", " << weights[i] << endl;
+
+    } // end particles
 
     is_initialized = true;
 
@@ -98,7 +104,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 	particles[i].x + (velocity / yaw_rate) * (sin(particles[i].theta + yaw_rate * delta_t) - sin(particles[i].theta));
 
       particles[i].y = 
-	particles[i].y + (velocity / yaw_rate) * (cos(particles[i].theta) - sin(particles[i].theta + yaw_rate * delta_t));
+	particles[i].y + (velocity / yaw_rate) * (cos(particles[i].theta) - cos(particles[i].theta + yaw_rate * delta_t));
 
       particles[i].theta = particles[i].theta + yaw_rate * delta_t;
     } else {
@@ -112,9 +118,13 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
     particles[i].y += dist_y(gen);
     particles[i].theta += dist_theta(gen);
 
-    cout << particles[i].x << endl;
+    //cout << i << " x: " << particles[i].x << endl;
+    //cout << i << " y: "<< particles[i].y << endl;
+    //cout << i << " theta: "<< particles[i].theta << endl;
+    //cout << i << " weight: "<< particles[i].weight << ", " << weights[i] << endl;
 
-  }
+
+  } // end particles
 
 }
 
@@ -161,6 +171,9 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 
   std::vector<LandmarkObs> world_observations;
 
+  // defined here for performance reasons as it does not depend on particle data
+  double ONE_OVER_2PI_STD = 1.0 / (2*M_PI * std_landmark[0] * std_landmark[1]);
+
   for (int i = 0; i < particles.size(); ++i) {
 
 
@@ -168,32 +181,41 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
     std::vector<double> sense_x;
     std::vector<double> sense_y;
 
+    //extract values for readability
+    const double px    = particles[i].x;
+    const double py    = particles[i].y;
+    const double theta = particles[i].theta;
+
     for (int j = 0; j < observations.size(); ++j) {
 
       // transform observations in vehicle coordinates into world coordinates    
 
       // decompose vehicle coordinates
-      double x_x = observations[j].x * cos(particles[i].theta);
-      double x_y = observations[j].x * sin(particles[i].theta);
+      //double x_x = observations[j].x * cos(particles[i].theta);
+      //double x_y = observations[j].x * sin(particles[i].theta);
 
-      double y_x = observations[j].y * cos(M_PI/2 - particles[i].theta);
-      double y_y = observations[j].y * sin(M_PI/2 - particles[i].theta);
+      //double y_x = observations[j].y * cos(M_PI/2 - particles[i].theta);
+      //double y_y = observations[j].y * sin(M_PI/2 - particles[i].theta);
 
       // add components to particle coordinates to get world coordinates
-      double w_x = particles[i].x + x_x + y_x;
-      double w_y = particles[i].y + x_y + y_y;
+      //double w_x = particles[i].x + x_x + y_x;
+      //double w_y = particles[i].y + x_y + y_y;
+      
+      double w_x  = observations[j].x * cos (theta) - observations[j].y * sin (theta) + px;
+      double w_y  = observations[j].x * sin (theta) + observations[j].y * cos (theta) + py;
 
       // find the closest landmark to the observation
-      double min_distance = 100.0; // MAX_DISTANCE
+      double min_distance = sensor_range; //1000.0; // MAX_DISTANCE
       int closest_landmark_id = -1;
       std::vector<Map::single_landmark_s> landmarks = map_landmarks.landmark_list;
 
       for (int z = 0; z < landmarks.size(); ++z) {
 	double distance = dist(landmarks[z].x_f,landmarks[z].y_f,w_x, w_y); 
 
-	if (distance < min_distance && distance <= sensor_range) { 
+	if (distance < min_distance) { 
 	  closest_landmark_id = landmarks[z].id_i; 
 	  min_distance = distance;
+	  //cout << j << " " << z << " , min distance: " << min_distance << endl;
 	}
       }
 
@@ -201,6 +223,8 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
       associations.push_back(closest_landmark_id);
       sense_x.push_back(w_x);
       sense_y.push_back(w_y);
+      
+      //cout << "landmark " << closest_landmark_id << " " << w_x << ", " << w_y << endl;
 
     } // end observations
     
@@ -211,13 +235,23 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
     // together to determine weight
 
     std::vector<Map::single_landmark_s> landmarks = map_landmarks.landmark_list;
-    double ONE_OVER_2PI_STD = 1.0 / (2*M_PI * std_landmark[0] * std_landmark[1]);
+    double prob = 1;
+
+    cout << endl << "probs for particle " << i << ": " << endl;
 
     for (int j = 0; j < particles[i].associations.size(); ++j) {
       
-      // compute multivariate normal distribution
-      double mu_x = landmarks[particles[i].associations[j]].x_f;
-      double mu_y = landmarks[particles[i].associations[j]].y_f;
+      // find landkmark
+      int z = 0;
+      for (; z < landmarks.size(); ++z) {
+	if (landmarks[z].id_i == particles[i].associations[j]) {
+	  break;
+	}
+      }
+
+      // helper variables for readability
+      double mu_x = landmarks[z].x_f;
+      double mu_y = landmarks[z].y_f;
       double x = particles[i].sense_x[j];
       double y = particles[i].sense_y[j];
       double std_x = std_landmark[0];
@@ -226,14 +260,19 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
       double exp_x = (x-mu_x)/std_x;
       double exp_y = (y-mu_y)/std_y;
 
-      double prob = ONE_OVER_2PI_STD*exp(-0.5*(exp_x*exp_x + exp_y*exp_y));
+      cout << "exp values: " << exp_x << " " << exp_y << endl;
 
-      // multiply probabilities together to generate weight
-      particles[i].weight *= prob;
-      
+      // compute joint distribution of multivariate normal distributions
+      prob *= ONE_OVER_2PI_STD*exp(-0.5*(exp_x*exp_x + exp_y*exp_y));
+
+      cout << "partial prob at association " << j << ": " << prob << endl;
     }
 
+    // multiply probabilities together to generate weight
+    cout << endl << "new weight for particle " << i << ": " << prob << ", prior weight: " << particles[i].weight << endl;
+
     // store weight in weights array (to be used in resample computation)
+    particles[i].weight = prob;
     weights[i] = particles[i].weight;
     
   } // end particles
@@ -250,12 +289,14 @@ void ParticleFilter::resample() {
   default_random_engine gen;
   discrete_distribution<int> dist(0,num_particles);
   int index = dist(gen);
+  cout << "init index: " << index << endl;
 
   double wmax = *max_element(weights.begin(), weights.end());
   double beta = 0;
+  uniform_real_distribution<double> beta_dist(0,2*wmax);
 
   for (int i = 0; i < weights.size(); ++i) {
-    uniform_real_distribution<double> beta_dist(0,2*wmax);
+
     beta += beta_dist(gen);
 
     while (weights[index] < beta) {
@@ -265,6 +306,7 @@ void ParticleFilter::resample() {
 
     // replace current particle with sampled particle
     particles[i] = particles[index];
+    cout << "index: " << index << endl;
   }
   
 
