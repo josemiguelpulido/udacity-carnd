@@ -34,9 +34,9 @@ int main()
 
   PID pid;
   // TODO: Initialize the pid variable.
-  double tau_p = 0.2;
-  double tau_d = 0.5; //3.0;
-  double tau_i = 0.0005; //0.004;
+  double tau_p = 0.1;
+  double tau_d = 0.8; //3.0;
+  double tau_i = 0.00001; //0.004;
   pid.Init(tau_p, tau_i, tau_d);
 
   h.onMessage([&pid](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
