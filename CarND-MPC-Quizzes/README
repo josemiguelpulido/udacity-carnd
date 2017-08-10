@@ -1,0 +1,31 @@
+
+
+1/ Ipopt installation
+
+The instructions to install it are:
+
+brew tap homebrew/science
+brew install ipopt --with-openblas
+
+ipopt has many dependencies, including gcc:
+
+gcc, libevent, open-mpi, ampl-mp, openblas, pkg-config, cmake, scalapack, mumps
+
+To avoid installing gcc from source and compiling it, first install Xcode command line tools:
+
+xcode-select --install
+
+This way, homebew downloads a precompiled version of gcc.
+
+
+The installation process also mentions this about another dependency, openblas (in case it was necessary):
+
+For compilers to find this software you may need to set:
+    LDFLAGS:  -L/usr/local/opt/openblas/lib
+    CPPFLAGS: -I/usr/local/opt/openblas/include
+
+Finally, after successul ipopt install, I got:
+
+Warning: homebrew/science/ipopt dependency gcc was built with a different C++ standard
+library (libstdc++ from clang). This may cause problems at runtime.
+ð  /usr/local/Cellar/ipopt/3.12.8: 91 files, 6.6MB, built in 2 minutes 5 seconds
