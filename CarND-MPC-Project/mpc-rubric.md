@@ -1,6 +1,6 @@
-## 1. Implementation
+## 1. Implementation ##
 
-### 1.1 Model
+### 1.1 Model ###
 I have used a kinematic model of the car. The state of the model is captured by 6 variables:
 - x, y represent the position
 - psi the orientation
@@ -11,7 +11,7 @@ I have used a kinematic model of the car. The state of the model is captured by 
 The model also inludes two actuators, the steering of the vehicle (delta), and the acceleration / deacceleration (or throttling)
 
 
-### 1.2 Timestep Length and Elapsed Duration (N & dt)###
+### 1.2 Timestep Length and Elapsed Duration (N & dt) ###
 
 I have selected N=50 and dt=0.05sec, which means that I am looking 2.5 seconds ahead. These are the values in the course material, 
 and are a reasonable period of time assuming that conditions do not change much in that period. I would like to test N and dt
