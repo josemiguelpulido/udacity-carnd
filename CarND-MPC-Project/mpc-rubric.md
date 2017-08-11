@@ -1,6 +1,6 @@
-## 1. Implementation ##
+## 1. Implementation
 
-### 1.1 Mode l###
+### 1.1 Model
 I have used a kinematic model of the car. The state of the model is captured by 6 variables:
 - x, y represent the position
 - psi the orientation
