@@ -91,6 +91,7 @@ int main() {
           double py = j[1]["y"];
           double psi = j[1]["psi"];
           double v = j[1]["speed"];
+	  v *= (1600.0 / 3600.0); // mph to m/s conversion
 
 	  // Solution overview in this video: https://www.youtube.com/watch?v=bOQuhpz3YfU&feature=youtu.be
 
@@ -100,7 +101,6 @@ int main() {
 	  //double y  = observations[j].x * sin (theta) + observations[j].y * cos (theta) + py;
 	  double x = px - px;
 	  double y = py - py;
-	  psi = 0; 
 
 	  // use expected variable type
 	  Eigen::VectorXd pts_x(ptsx.size());
@@ -113,6 +113,8 @@ int main() {
 	    pts_x(i) = shift_x*cos(0 - psi) - shift_y*sin(0 - psi);
 	    pts_y(i) = shift_x*sin(0 - psi) + shift_y*cos(0 - psi);
 	  }
+
+	  psi = 0; 
 
 	  // fit polynomial to points
 	  // order 3 polynomial should be complex enough for most cases
@@ -148,8 +150,7 @@ int main() {
 	  // NOTE2: if δ is positive we rotate counter-clockwise, or turn left. In the simulator however, 
 	  // a positive value implies a right turn and a negative value implies a left turn.
 	  // To get around this, Leave the update equation as is and multiply the steering value by -1 before sending it back to the server
-	  const double Lf = 2.67;
-	  double steering_angle = -steer_value / (deg2rad(25)*Lf);
+	  double steering_angle = -steer_value / deg2rad(25);
 	  cout << "steering angle " << steering_angle << endl;
           msgJson["steering_angle"] = steering_angle;
           msgJson["throttle"] = throttle_value;
