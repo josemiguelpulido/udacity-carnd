@@ -150,7 +150,7 @@ int main() {
 	  double psi1 = psi - v * delta / Lf * dt; // 
 	  double v1 = v + a * dt;
 	  double cte1 = cte + v * sin(epsi) * dt;
-	  double epsi1 = epsi + v * delta / Lf * dt;
+	  double epsi1 = epsi - v * delta / Lf * dt;
 
 	  // create state 
 	  Eigen::VectorXd state(6);
