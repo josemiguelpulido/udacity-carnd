@@ -114,6 +114,8 @@ int main() {
 	    pts_y(i) = shift_x*sin(0 - psi) + shift_y*cos(0 - psi);
 	  }
 
+	  // psi must be zero in car's coordinate system
+	  // (set here, because coordinate transformation requires psi in map's coordinate system)
 	  psi = 0; 
 
 	  // fit polynomial to points
@@ -128,10 +130,31 @@ int main() {
 	  // double epsi = psi - atan(coeffs[1]) // order 1
 	  double epsi = psi - atan(coeffs[1] + 2 * x * coeffs[2] + 3 * coeffs[3] * pow(x,2));  // order 3
 
+
+	  // take the 100ms simulator delay into account by passing the solver
+	  // the state 100ms into the future
+	  
+	  // x_[t+1] = x[t] + v[t] * cos(psi[t]) * dt
+	  // y_[t+1] = y[t] + v[t] * sin(psi[t]) * dt
+	  // psi_[t+1] = psi[t] + v[t] / Lf * delta[t] * dt
+	  // v_[t+1] = v[t] + a[t] * dt
+	  // cte[t+1] = f(x[t]) - y[t] + v[t] * sin(epsi[t]) * dt
+	  // epsi[t+1] = psi[t] - psides[t] + v[t] * delta[t] / Lf * dt
+	  const double dt = 0.125; // sec
+	  const double Lf = 2.67;
+	  const double delta = j[1]["steering_angle"];
+	  const double a = j[1]["throttle"];
+	    
+	  double x1 = x + v * cos(psi) * dt;
+	  double y1 = y + v * sin(psi) * dt;
+	  double psi1 = psi - v * delta / Lf * dt; // 
+	  double v1 = v + a * dt;
+	  double cte1 = cte + v * sin(epsi) * dt;
+	  double epsi1 = epsi + v * delta / Lf * dt;
+
 	  // create state 
 	  Eigen::VectorXd state(6);
-	  state << x, y, psi, v, cte, epsi;
-
+	  state << x1, y1, psi1, v1, cte1, epsi1;
 
 	  auto vars = mpc.Solve(state, coeffs);
 
@@ -150,7 +173,7 @@ int main() {
 	  // NOTE2: if δ is positive we rotate counter-clockwise, or turn left. In the simulator however, 
 	  // a positive value implies a right turn and a negative value implies a left turn.
 	  // To get around this, Leave the update equation as is and multiply the steering value by -1 before sending it back to the server
-	  double steering_angle = -steer_value / deg2rad(25);
+	  double steering_angle = steer_value / deg2rad(25);
 	  cout << "steering angle " << steering_angle << endl;
           msgJson["steering_angle"] = steering_angle;
           msgJson["throttle"] = throttle_value;
