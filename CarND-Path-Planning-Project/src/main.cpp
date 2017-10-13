@@ -160,6 +160,12 @@ vector<double> getXY(double s, double d, const vector<double> &maps_s, const vec
 
 }
 
+// start at lane 1
+int lane = 1;
+
+// target velocity to achieve
+double ref_vel = 0.0; //49.5; // mph  
+
 int main() {
   uWS::Hub h;
 
@@ -207,12 +213,7 @@ int main() {
     // The 2 signifies a websocket event
     //auto sdata = string(data).substr(0, length);
     //cout << sdata << endl;
-    
-    // start at lane 1
-    int lane = 1;
-
-    // target velocity to achieve
-    double ref_vel = 49.5; // mph                   
+                     
                        
     if (length && length > 2 && data[0] == '4' && data[1] == '2') {
 
@@ -250,11 +251,55 @@ int main() {
 
           	vector<double> next_x_vals;
           	vector<double> next_y_vals;
-
+            
 
           	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
             
+            // 1. Take into account other cars
+            if (prev_size > 0) {
+              car_s = end_path_s;
+            }
             
+            bool too_close = false;
+            // find ref_v to use based on other cars
+            for (int i = 0; i < sensor_fusion.size(); ++i) {
+              
+              float d = sensor_fusion[i][6];
+              
+              // car is in my lane
+              if (d < (2 + 4*lane + 2) && d > (2 + 4*lane - 2)) {
+                
+                //cout << "car " << i << " in same lane " << endl;
+                
+                double vx = sensor_fusion[i][3];
+                double vy = sensor_fusion[i][4];
+                
+                double check_speed = sqrt(vx*vx + vy*vy);
+                double check_car_s = sensor_fusion[i][5];
+                
+                // compute where each car will be in the near future
+                check_car_s += ( (double)prev_size * 0.02 * check_speed);
+                
+                //cout << "car " << i << " position: " << check_car_s << endl;
+                //cout << "ego car position: " << car_s << endl;
+                
+                if ((check_car_s > car_s) && ((check_car_s - car_s) < 30)) {
+                  // ref_vel = 29.5; // mph
+                  cout << "car " << i << " too close " << endl;
+                  too_close = true;
+                }
+              }
+            }
+            
+            if (too_close) {
+              ref_vel -= 1.25;
+            } else if (ref_vel < 49.5) {
+              ref_vel += 0.8;
+              cout << "increasing velocity to " << ref_vel << " mph" << endl;
+              
+            }
+            
+            // 2. create path points
             vector<double> ptsx;
             vector<double> ptsy;  
             
