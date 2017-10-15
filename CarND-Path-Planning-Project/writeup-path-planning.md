@@ -14,6 +14,8 @@ The definition of two close is 30m, using the value suggested in the writeup. Th
 too close to a car in front of us in the same lane, but also to see if it is safe to change lanes. When chanking lanes, we consider the
 distance to cars that could be both in front of and behind our car.
 
+The "linear increase" en speedup also helps with jerk minimisation.
+
 ## 2. Reflection ##
 
 I have used the trajectory generation code based on splines described in the project walkthrough. To come up with a new trajectory, I first
