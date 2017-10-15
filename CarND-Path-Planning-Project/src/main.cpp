@@ -261,24 +261,29 @@ int main() {
             }
             
             bool too_close = false;
+            bool left_lane_change = true;
+            bool right_lane_change = true;
             // find ref_v to use based on other cars
             for (int i = 0; i < sensor_fusion.size(); ++i) {
               
               float d = sensor_fusion[i][6];
+              
+              // compute where each car will be in the near future
+              double vx = sensor_fusion[i][3];
+              double vy = sensor_fusion[i][4];
+              
+              double check_speed = sqrt(vx*vx + vy*vy);
+              double check_car_s = sensor_fusion[i][5];
+              
+              // near future defined considering the remaining number of points in the previous trajectory,
+              // that it takes 20 ms to reach each point, and that the distane between points depends on the average speed
+              check_car_s += ( (double)prev_size * 0.02 * check_speed);
               
               // car is in my lane
               if (d < (2 + 4*lane + 2) && d > (2 + 4*lane - 2)) {
                 
                 //cout << "car " << i << " in same lane " << endl;
                 
-                double vx = sensor_fusion[i][3];
-                double vy = sensor_fusion[i][4];
-                
-                double check_speed = sqrt(vx*vx + vy*vy);
-                double check_car_s = sensor_fusion[i][5];
-                
-                // compute where each car will be in the near future
-                check_car_s += ( (double)prev_size * 0.02 * check_speed);
                 
                 //cout << "car " << i << " position: " << check_car_s << endl;
                 //cout << "ego car position: " << car_s << endl;
@@ -288,12 +293,36 @@ int main() {
                   cout << "car " << i << " too close " << endl;
                   too_close = true;
                 }
+                
+              // car is in left lane  
+              } else if (d < 4*lane && d > 4*(lane-1)) {
+                
+                if (abs(check_car_s - car_s) < 30) {
+                  left_lane_change = false;
+                }
+                
+              // car is in right lane
+              } else if (d > 4*(lane+1) && d < 4*(lane+2)) {
+                
+                if (abs(check_car_s - car_s) < 30) {
+                  right_lane_change = false;
+                }
+                
               }
             }
             
             if (too_close) {
               ref_vel -= 1.25;
-            } else if (ref_vel < 49.5) {
+              
+              // favor left lane over right lane
+              if (left_lane_change and lane > 0) {
+                lane -= 1;
+              } else if (right_lane_change and lane < 2) {
+                lane += 1;
+              }
+              
+            } else if ((ref_vel + 0.8) < 49.5) {
+              
               ref_vel += 0.8;
               cout << "increasing velocity to " << ref_vel << " mph" << endl;
               
