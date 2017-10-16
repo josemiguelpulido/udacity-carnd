@@ -6,12 +6,12 @@ THe car avoids collitions by first checking if it is too close to the car in fro
 to slow down, or to change lanes. The car will first slow down, and then, if it is actually possible to change lanes will do so, 
 favoring the left lane over the right lane.
 
-The car slows down faster than it speeds up again, in spirit similar to the multiplicative decrease / linear increase of the TCP protocol's window size determination algorithm. The idea is to slow down fast to avoid a collision, and then increase speed progressively, 
-as it is safe to do so.
+Originally, the car slowed down faster than it speeds up again, in spirit similar to the multiplicative decrease / linear increase of the TCP protocol's window size determination algorithm. The idea is to slow down fast to avoid a collision, and then increase speed progressively, as it is safe to do so. The problem with this approach is that the car may reduce speed too quick, leading both to an increased probability of being rear-ended, and to passenger lack of confort due to strong breaking. Therefore, I have reduced both the increase and reduction of speed to a smaller step increment, to help with jerk minimisation.
 
 The definition of "too close" is 30m, using the value suggested in the walkthrough. The notion of "too close" is used both to check if we are too close to a car in front of us in the same lane, but also to see if it is safe to change lanes. When changing lanes, we consider the distance to cars that could be both in front of and behind our car.
 
-The "linear increase" during speedup also helps with jerk minimisation.
+In addition, to compensate for a more conservative behavior during speeding up, I have also allowed lane changes if the car is significantly faster than the car in the other lane (20% more), and this car is acceptably behind our car (20m).
+
 
 ## 2. Reflection ##
 
