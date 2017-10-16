@@ -261,6 +261,7 @@ int main() {
             }
             
             bool too_close = false;
+            double distance_to_front_car = 0.0;
             bool left_lane_change = true;
             bool right_lane_change = true;
             // find ref_v to use based on other cars
@@ -292,27 +293,38 @@ int main() {
                   // ref_vel = 29.5; // mph
                   cout << "car " << i << " too close " << endl;
                   too_close = true;
+                  distance_to_front_car = (check_car_s - car_s);
                 }
                 
               // car is in left lane  
               } else if (d < 4*lane && d > 4*(lane-1)) {
                 
                 if (abs(check_car_s - car_s) < 30) {
-                  left_lane_change = false;
+                  
+                  // only if we are in front of the car in the ohter lane and we go faster, 
+                  // we still are ok to try to advance
+                  if (car_s < (check_car_s + 20) || car_speed < check_speed * 1.2) {
+                    left_lane_change = false;
+                  }
                 }
                 
               // car is in right lane
               } else if (d > 4*(lane+1) && d < 4*(lane+2)) {
                 
                 if (abs(check_car_s - car_s) < 30) {
-                  right_lane_change = false;
+                  
+                  if (car_s < (check_car_s + 20) || car_speed < check_speed * 1.2) {
+                    right_lane_change = false;
+                  }
                 }
                 
               }
             }
             
             if (too_close) {
-              ref_vel -= 1.25;
+              
+              // reduce speed faster if really too close to the car in front
+              ref_vel -= (distance_to_front_car < 10) ?  .4 : .225;
               
               // favor left lane over right lane
               if (left_lane_change and lane > 0) {
@@ -323,7 +335,7 @@ int main() {
               
             } else if ((ref_vel + 0.8) < 49.5) {
               
-              ref_vel += 0.8;
+              ref_vel += 0.225;
               cout << "increasing velocity to " << ref_vel << " mph" << endl;
               
             }
