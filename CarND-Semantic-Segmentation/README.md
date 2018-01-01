@@ -44,6 +44,11 @@ fed into the 1x1 convolutions.  As a result, some students have found that the m
 cluded. The model may not converge substantially faster, but may reach a higher IoU and accuracy. 
 - When adding l2-regularization, setting a regularizer in the arguments of the `tf.layers` is not enough. Regularization loss term
 s must be manually added to your loss function. otherwise regularization is not implemented.
+
+### Further reading
+Original [paper](https://people.eecs.berkeley.edu/~jonlong/long_shelhamer_fcn.pdf) on semantic segmentation. And [talk](http://techtalks.tv/talks/fully-convolutional-networks-for-semantic-segmentation/61606/) from the same authors.
+
+Survey on [Semantic Segmentation](http://blog.qure.ai/notes/semantic-segmentation-deep-learning-review)
  
 ### Using GitHub and Creating Effective READMEs
 If you are unfamiliar with GitHub , Udacity has a brief [GitHub tutorial](http://blog.udacity.com/2015/06/a-beginners-git-github-tutorial.html) to get you started. Udacity also provides a more detailed free [course on git and GitHub](https://www.udacity.com/course/how-to-use-git-and-github--ud775).
