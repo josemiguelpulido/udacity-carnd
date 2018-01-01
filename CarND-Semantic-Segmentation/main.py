@@ -56,22 +56,29 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     """
     # TODO: Implement function
     conv_1x1 = tf.layers.conv2d(vgg_layer7_out, num_classes, 1, padding='same',
-            kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+            kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
+            kernel_initializer=tf.truncated_normal_initializer(stddev=0.01))
     
     output = tf.layers.conv2d_transpose(conv_1x1, num_classes, 4, 2,padding='same',
-            kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+            kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
+            kernel_initializer=tf.truncated_normal_initializer(stddev=0.01))
 
     conv_1x1 = tf.layers.conv2d(vgg_layer4_out, num_classes, 1, padding='same',
-            kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+            kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
+            kernel_initializer=tf.truncated_normal_initializer(stddev=0.01))
+
     output = tf.add(output, conv_1x1)
     output = tf.layers.conv2d_transpose(output, num_classes, 4, 2,padding='same',
-            kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+            kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
+            kernel_initializer=tf.truncated_normal_initializer(stddev=0.01))
     
     conv_1x1 = tf.layers.conv2d(vgg_layer3_out, num_classes, 1, padding='same',
-            kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+            kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
+            kernel_initializer=tf.truncated_normal_initializer(stddev=0.01))
     output = tf.add(output, conv_1x1)
     output = tf.layers.conv2d_transpose(output, num_classes, 16, 8,padding='same',
-            kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+            kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
+            kernel_initializer=tf.truncated_normal_initializer(stddev=0.01))
 
     tf.Print(output, [tf.shape(output)])
 
@@ -119,10 +126,11 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     sess.run(tf.global_variables_initializer())
     for epoch in range(epochs):
         for images, labels in get_batches_fn(batch_size):
-            sess.run(train_op, 
-                    feed_dict={input_image: images, correct_label: labels, 
-                               keep_prob: 0.3, learning_rate: 0.01})
-    
+            _, loss = sess.run([train_op, cross_entropy_loss], 
+                        feed_dict={input_image: images, correct_label: labels, 
+                                keep_prob: 0.3, learning_rate: 0.0001})
+            print('cross entropy loss: ', loss)
+
 tests.test_train_nn(train_nn)
 
 
@@ -161,8 +169,8 @@ def run():
         logits, train_op, cross_entropy_loss = optimize(nn_last_layer, correct_label, learning_rate, num_classes)
 
         # TODO: Train NN using the train_nn function
-        epochs = 6
-        batch_size = 50
+        epochs = 3
+        batch_size = 1
         #input_image = tf.placeholder(tf.float32, (batch_size, image_shape[0], image_shape[1], 3))
 
         train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_loss, input_image,
