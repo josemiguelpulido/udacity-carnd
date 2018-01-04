@@ -65,10 +65,10 @@ class DBWNode(object):
 
         self.proposed_angular_velocity = self.proposed_linear_velocity = None
         self.current_angular_velocity = self.current_linear_velocity = None
-        
+        self.dbw_enabled = False
+                
         self.loop()
 
-        self.dbw_enabled = False
 
     def twist_cb(self, msg):
         self.proposed_angular_velocity = msg.twist.angular

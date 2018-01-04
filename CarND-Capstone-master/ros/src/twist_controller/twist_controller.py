@@ -47,7 +47,7 @@ class Controller(object):
         if linear_velocity.x < self.min_speed:
             self.vel_pid.reset()
         
-        throttle = self.vel_pid.step(self.lowpass(vel_error), sample_time)
+        throttle = self.vel_pid.step(self.lowpass.filt(vel_error), sample_time)
 
         if throttle < self.brake_deadband:
             brake = -throttle * self.vehicle_mass * self.wheel_radius;
