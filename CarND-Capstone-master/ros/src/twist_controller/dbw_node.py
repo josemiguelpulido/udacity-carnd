@@ -98,12 +98,16 @@ class DBWNode(object):
             # if self.dbw_enabled:
             #   self.publish(throttle, brake, steer)
 
-            throttle, brake, steering = self.controller.control(self.proposed_linear_velocity,self.proposed_angular_velocity,
-                                                                self.current_linear_velocity,
-                                                                (1. / 50)) #sample time (1/50Hz) sec
+            if not self.proposed_linear_velocity or not self.proposed_angular_velocity or not self.current_linear_velocity:
+                rospy.logwarn('velocity info not available')
+            else:
 
-            if self.dbw_enabled:
-                self.publish(throttle, brake, steer)
+                throttle, brake, steering = self.controller.control(self.proposed_linear_velocity,self.proposed_angular_velocity,
+                                                                    self.current_linear_velocity,
+                                                                    (1. / 50)) #sample time (1/50Hz) sec
+
+                if self.dbw_enabled:
+                    self.publish(throttle, brake, steer)
                 
             rate.sleep()
 
