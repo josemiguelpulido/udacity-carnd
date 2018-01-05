@@ -24,12 +24,20 @@ class Controller(object):
         self.vel_pid = PID(kp, ki, kd, decel_limit, accel_limit)
 
         # low pass filter
-        tau = 0.1
-        ts = 0.1
-        self.lowpass = LowPassFilter(tau, ts)
+        #tau = 0.1
+        #ts = 0.1
+        a = 0.25 # weight of last sample
+        self.lowpass = LowPassFilter(a)
+        self.lowpass_lin_vel = LowPassFilter(a)
+        self.lowpass_ang_vel = LowPassFilter(a)
+        self.lowpass_cur_vel = LowPassFilter(a)
 
         # for throttle computation
-        self.vehicle_mass = vehicle_mass + fuel_capacity * GAS_DENSITY # assume full tank, as we do not have info about tank levels
+
+        # assume full tank, as we do not have info about tank levels
+        # 1 gallon / 0.0038 cubic meter
+        self.vehicle_mass = vehicle_mass + (fuel_capacity * GAS_DENSITY / 0.0038)
+        
         self.wheel_radius = wheel_radius
         self.brake_deadband = brake_deadband
 
@@ -37,20 +45,33 @@ class Controller(object):
         self.yaw = YawController(wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle)
 
 
-    def control(self, linear_velocity, angular_velocity, current_velocity, sample_time):
+    def control(self, linear_velocity, angular_velocity, current_velocity, sample_time, dbw_enabled):
         # TODO: Change the arg, kwarg list to suit your needs
         # Return throttle, brake, steer
 
-        steer = self.yaw.get_steering(linear_velocity.x, angular_velocity.z, current_velocity.x)
-        
-        vel_error = linear_velocity.x - current_velocity.x
-        if linear_velocity.x < self.min_speed:
+        if not dbw_enabled:
+            return 1., 0., 0.
+
+        # smooth out raw signals because they can be noisy. Needed?
+        # (and student recommends using abs, to account for occasional errors)
+        lin_velocity = self.lowpass_lin_vel.filt(abs(linear_velocity.x)) 
+        ang_velocity = self.lowpass_ang_vel.filt(angular_velocity.z)
+        cur_velocity = self.lowpass_cur_vel.filt(abs(current_velocity.x))
+
+        # steering
+        steer = self.yaw.get_steering(lin_velocity, ang_velocity, cur_velocity)
+
+        # throttle
+        vel_diff = lin_velocity - cur_velocity
+        if lin_velocity < self.min_speed:
             self.vel_pid.reset()
         
-        throttle = self.vel_pid.step(self.lowpass.filt(vel_error), sample_time)
+        accel = self.vel_pid.step(self.lowpass.filt(vel_diff), sample_time)
+        throttle = max(0,min(1,accel)) # throttle values in [0,1]
 
-        if throttle < self.brake_deadband:
-            brake = -throttle * self.vehicle_mass * self.wheel_radius;
+        # brake
+        if accel < -self.brake_deadband:
+            brake = -accel * self.vehicle_mass * self.wheel_radius;
         else:
             brake = 0
 
