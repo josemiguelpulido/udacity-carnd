@@ -22,7 +22,7 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
 LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number
-
+MAX_DECEL = 1.0
 
 class WaypointUpdater(object):
     def __init__(self):
@@ -32,7 +32,7 @@ class WaypointUpdater(object):
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
 
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
-        #rospy.Subscriber('/traffic_waypoint', PoseStamped, self.traffic_waypoint_cb)
+        rospy.Subscriber('/traffic_waypoint', PoseStamped, self.traffic_cb)
         #rospy.Subscriber('/obstacle_waypoint', PoseStamped, self.obstacle_waypoint_cb)
 
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
@@ -41,6 +41,9 @@ class WaypointUpdater(object):
         self.base_waypoints = []
         self.final_waypoints = []
         self.rate = rospy.Rate(50) # Hz
+
+        #self.max_velocity = self.kmph2mps(rospy.get_param('~waypoint_loader/velocity'))
+        self.max_velocity = self.kmph2mps(40) # kmph
         
         rospy.spin()
 
@@ -55,7 +58,8 @@ class WaypointUpdater(object):
 
         # check if we have received waypoints
         if not self.base_waypoints:
-            rospy.logwarn("base waypoints not yet acquired. Skipping received pose information")
+            rospy.logwarn("waypoint_updater: base waypoints not yet acquired. Skipping received pose information")
+            return
 
         # determine closest waypoint
         closest_wp = -1
@@ -74,6 +78,7 @@ class WaypointUpdater(object):
             if angle > math.pi/4:
                 continue
 
+            # determine closest candidate
             dist = dl(car_position, self.base_waypoints[i].pose.pose.position)
             if dist < closest_distance:
                 closest_distance = dist
@@ -83,6 +88,9 @@ class WaypointUpdater(object):
         self.final_waypoints = self.base_waypoints[closest_wp:]
         if len(self.final_waypoints) > LOOKAHEAD_WPS:
             self.final_waypoints = self.final_waypoints[:LOOKAHEAD_WPS]
+
+        # store it for closest traffic light processing 
+        self.next_wp = closest_wp 
 
         # publish resulting waypoints
         lane = Lane()
@@ -98,7 +106,35 @@ class WaypointUpdater(object):
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
-        pass
+        
+        light_wp = msg
+
+        # only consider red lights
+        if light_wp == -1:
+            rospy.logwarn("waypoint_updater: no RED traffic light ahead")
+            return
+
+        # make sure traffic light is ahead of car
+        if light_wp < self.next_wp:
+            rospy.logwarn("traffic light waypoint %d not ahead of car waypoint %d", [light_wp, self.next_wp])
+            return                        
+
+        # set velocity 0 to light traffic waypoint
+        set_waypoint_velocity(self.base_waypoints,light_wp , 0)
+
+        # set decreasing velocity to all waypoints between current one and the traffic light one
+        for i in range(self.next_wp + 1, light_wp):
+            distance(self.base_waypoints, i, light_wp)
+            vel = math.sqrt(2 * MAX_DECEL * dist)
+            
+            cur_vel = get_waypoint_velocity(self.base_waypoints[i])
+            vel = min(self.max_velocity, min(vel, cur_vel))
+            if vel < 1.:
+                vel = 0.
+            if vel != cur_vel:
+                set_waypoint_velocity(self.base_waypoints, i, vel)
+                rospy.loginfo("waypoint_updater: setting velocity %d for waypoint %d",  [vel, i])
+
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
@@ -117,6 +153,10 @@ class WaypointUpdater(object):
             dist += dl(waypoints[wp1].pose.pose.position, waypoints[i].pose.pose.position)
             wp1 = i
         return dist
+
+    def kmph2mps(self, velocity_kmph):
+        return (velocity_kmph * 1000.) / (60. * 60.)
+
 
 
 if __name__ == '__main__':
