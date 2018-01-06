@@ -3,6 +3,7 @@
 import rospy
 from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
+from std_msgs.msg import Int32
 
 import math
 
@@ -32,7 +33,7 @@ class WaypointUpdater(object):
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
 
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
-        rospy.Subscriber('/traffic_waypoint', PoseStamped, self.traffic_cb)
+        rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
         #rospy.Subscriber('/obstacle_waypoint', PoseStamped, self.obstacle_waypoint_cb)
 
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
@@ -42,9 +43,6 @@ class WaypointUpdater(object):
         self.final_waypoints = []
         self.rate = rospy.Rate(50) # Hz
 
-        #self.max_velocity = self.kmph2mps(rospy.get_param('~waypoint_loader/velocity'))
-        self.max_velocity = self.kmph2mps(40) # kmph
-        
         rospy.spin()
 
     def pose_cb(self, msg):
@@ -107,7 +105,7 @@ class WaypointUpdater(object):
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
         
-        light_wp = msg
+        light_wp = int(msg.data)
 
         # only consider red lights
         if light_wp == -1:
@@ -116,24 +114,26 @@ class WaypointUpdater(object):
 
         # make sure traffic light is ahead of car
         if light_wp < self.next_wp:
-            rospy.logwarn("traffic light waypoint %d not ahead of car waypoint %d", [light_wp, self.next_wp])
+            rospy.logwarn("traffic light waypoint %d not ahead of car waypoint %d", light_wp, self.next_wp)
             return                        
 
         # set velocity 0 to light traffic waypoint
-        set_waypoint_velocity(self.base_waypoints,light_wp , 0)
+        self.set_waypoint_velocity(self.base_waypoints,light_wp , 0)
 
         # set decreasing velocity to all waypoints between current one and the traffic light one
         for i in range(self.next_wp + 1, light_wp):
-            distance(self.base_waypoints, i, light_wp)
+            dist = self.distance(self.base_waypoints, i, light_wp)
             vel = math.sqrt(2 * MAX_DECEL * dist)
+
+            # velocity must never exceed the value setup by waypoint_loader
+            cur_vel = self.get_waypoint_velocity(self.base_waypoints[i])
+            vel = min(vel, cur_vel)
             
-            cur_vel = get_waypoint_velocity(self.base_waypoints[i])
-            vel = min(self.max_velocity, min(vel, cur_vel))
             if vel < 1.:
                 vel = 0.
             if vel != cur_vel:
-                set_waypoint_velocity(self.base_waypoints, i, vel)
-                rospy.loginfo("waypoint_updater: setting velocity %d for waypoint %d",  [vel, i])
+                self.set_waypoint_velocity(self.base_waypoints, i, vel)
+                rospy.loginfo("waypoint_updater: setting velocity %d for waypoint %d",  vel, i)
 
 
     def obstacle_cb(self, msg):
