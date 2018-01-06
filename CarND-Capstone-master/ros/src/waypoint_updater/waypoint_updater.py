@@ -48,8 +48,10 @@ class WaypointUpdater(object):
         # TODO: Implement
         #rospy.logwarn(msg.pose.position.x)
 
-        # get car's current position
-        position = msg.pose.position
+        # get car's current position, orientation and angle
+        car_position = msg.pose.position
+        car_orientation =  msg.pose.orientation
+        car_theta = math.atan2(car_orientation.y, car_orientation.x)
 
         # check if we have received waypoints
         if not self.base_waypoints:
@@ -59,12 +61,20 @@ class WaypointUpdater(object):
         closest_wp = -1
         closest_distance = 1000 #initial large number
 
-        # define distance in 3D
+        # define distance in 3D and heading
         dl = lambda a, b: math.sqrt((a.x-b.x)**2 + (a.y-b.y)**2  + (a.z-b.z)**2)
+        hl = lambda a, b: math.atan2((a.y-b.y),(a.x-b.x))
 
         # look for closest waypoint
         for i in range(len(self.base_waypoints)):
-            dist = dl(position, self.base_waypoints[i].pose.pose.position)
+
+            # only consider waypoints ahead
+            heading = hl(car_orientation, self.base_waypoints[i].pose.pose.orientation)
+            angle = abs(heading - car_theta)
+            if angle > math.pi/4:
+                continue
+
+            dist = dl(car_position, self.base_waypoints[i].pose.pose.position)
             if dist < closest_distance:
                 closest_distance = dist
                 closest_wp = i
