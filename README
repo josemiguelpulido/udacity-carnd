@@ -31,7 +31,7 @@ and connecting to notebook below)
 
 - connect to instance
 ssh carnd@ec2-54-155-73-27.eu-west-1.compute.amazonaws.com
-pass: carnd
+pass: XXX
 
 source activate carnd-term1
 
